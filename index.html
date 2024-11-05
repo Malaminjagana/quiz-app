@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .quiz-container { max-width: 500px; text-align: center; }
+        .question { font-size: 1.2em; }
+        .options { list-style-type: none; padding: 0; }
+        .options li { margin: 8px 0; }
+        button { padding: 8px 16px; margin-top: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>Quiz App</h1>
+        <div id="quiz">
+            <p id="question" class="question"></p>
+            <ul id="options" class="options"></ul>
+            <button onclick="nextQuestion()">Next Question</button>
+            <p id="result"></p>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let questions = [];
+
+        async function fetchQuestions() {
+            const response = await fetch('/api/questions');
+            questions = await response.json();
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const questionData = questions[currentQuestionIndex];
+            document.getElementById("question").textContent = questionData.question;
+            const optionsList = document.getElementById("options");
+            optionsList.innerHTML = "";
+            questionData.options.forEach(option => {
+                const li = document.createElement("li");
+                const button = document.createElement("button");
+                button.textContent = option;
+                button.onclick = () => checkAnswer(option);
+                li.appendChild(button);
+                optionsList.appendChild(li);
+            });
+        }
+
+        async function checkAnswer(selectedAnswer) {
+            const response = await fetch('/api/check_answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question_index: currentQuestionIndex, answer: selectedAnswer })
+            });
+            const result = await response.json();
+            if (result.correct) {
+                score++;
+                document.getElementById("result").textContent = "Correct!";
+            } else {
+                document.getElementById("result").textContent = "Incorrect!";
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            document.getElementById("result").textContent = "";
+            if (currentQuestionIndex < questions.length) {
+                displayQuestion();
+            } else {
+                document.getElementById("quiz").innerHTML = `<h2>Your score: ${score}/${questions.length}</h2>`;
+            }
+        }
+
+        fetchQuestions();
+    </script>
+</body>
+</html>
